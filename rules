@@ -1,0 +1,23 @@
+#from smdebug.rules.rule import Rule
+
+class CustomNonTrainingRule(sagemaker.debugger.Rule):
+    def __init__(self, base_trial, threshold=5, start_after=10, \
+                 step_pace=3, tensor_name='validation-rmse'):
+        super().__init__(base_trial)
+        self.threshold = int(threshold)
+        self.start_after = max(int(start_after), 10)
+        self.tensor_name = tensor_name
+        self.step_pace = int(step_pace)
+    
+    def invoke_at_step(self, step):
+        c_step = step / self.step_pace + 1
+        tens_ = self.base_trial.tensor_names(regex='validation-rmse')
+        if c_step > 3:
+            return True
+            t = tens_.values()[step][0]
+            v = tens_.values()[step - self.step_pace][0]
+            if t > v:
+                return True
+            if 100*(v/t - 1) < self.threshold:
+                return True
+        return False
